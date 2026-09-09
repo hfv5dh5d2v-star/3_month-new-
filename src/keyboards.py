@@ -13,5 +13,5 @@ inline = InlineKeyboardMarkup(inline_keyboard = [
 ])
 
 inline_1 = InlineKeyboardMarkup(inline_keyboard = [
-    [InlineKeyboardButton(text = 'тех-помощь', callback_data='tech_support')], [InlineKeyboardButton(text ='мен.помощь', callback_data='management_support')]
+    [InlineKeyboardButton(text = 'тех-помощь', callback_data='tech_support')], [InlineKeyboardButton(text ='игра с менеджментом', callback_data='management_support')]
 ])
