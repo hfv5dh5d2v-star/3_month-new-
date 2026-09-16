@@ -5,6 +5,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from src.keyboards import reply, inline, inline_1
 from src.questions import QUESTIONS
+from db.users import create_user, get_user, get_all_users, delete_user
 
 router = Router()
 
@@ -13,6 +14,10 @@ class Manage_Support(StatesGroup):
 
 @router.message(CommandStart())
 async def cmd_start(message: Message):
+    user = create_user(
+        username=message.from_user.full_name or 'User Unknown',
+        telegram_id=message.from_user.id
+    )
     await message.answer(f"Hello, {message.from_user.
                                    full_name}! I am your bot.", reply_markup = reply)
     print(f' user {message.from_user.full_name}, \n his/her id {message.from_user.id}, \n his/her nickname {message.from_user.username} )')
@@ -54,13 +59,6 @@ async def cmd_java(message: Message):
 
 #FSM
 
-@router.callback_query(F.data == 'tech_support')
-async def cmd_tech_support(callback: CallbackQuery, state: FSMContext):
-    await callback.answer()
-    await callback.message.answer(QUESTIONS[0]['question'])
-        
-
-
 @router.callback_query(F.data == 'management_support')
 async def cmd_management_support(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
@@ -91,6 +89,32 @@ async def user_answer(message: Message, state: FSMContext):
     else:
         await state.update_data(index = index, score = score)
         await message.answer(f'Вопрос {index + 1} : ' + QUESTIONS[index]['question'])
+
+
+@router.message(Command('users'))
+async def cmd_users(message: Message):
+    users = get_all_users()
+    if not users:
+        await message.answer('В базе данных пока нет пользователей')
+        return
+    text = 'Список пользователей:\n\n'
+    for user in users:
+        text += f'ID: {user['id']}\n'
+        text += f'Username: {user['username']}\n'
+        text += f'Telegram ID: {user['telegram_id']}\n'
+
+    await message.answer(text)
+
+@router.message(Command('delete'))
+async def cnd_delete(message: Message):
+    user = get_user(message.from_user.id)
+
+    if not user:
+        await message.answer('Вас нет в базе данных')
+        return
+
+    delete_user(message.from_user.id)
+    await message.answer("Вы успешно удалены из базы данных.")
 
 
 @router.message()
