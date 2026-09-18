@@ -4,8 +4,10 @@ from aiogram import F, Router
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from src.keyboards import reply, inline, inline_1
-from src.questions import QUESTIONS
 from db.users import create_user, get_user, get_all_users, delete_user
+from db.results import save_result
+from db.qustions import get_all_questions
+
 
 router = Router()
 
@@ -62,34 +64,44 @@ async def cmd_java(message: Message):
 @router.callback_query(F.data == 'management_support')
 async def cmd_management_support(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
+    questions = get_all_questions()   
+    if not questions:
+        await callback.message.answer("Вопросов нет!")
+        return
     await state.update_data(index = 0, score = 0)
     await state.set_state(Manage_Support.waiting_answer)
-    await callback.message.answer(QUESTIONS[0]['question'])
+    await callback.message.answer(f'Вопрос 1: {questions[0]["question_text"]}')
 
 @router.message(Manage_Support.waiting_answer)
 
 async def user_answer(message: Message, state: FSMContext):
     data = await state.get_data()
-    index= data['index']
+    questions = data['questions']
+    index = data['index']
     score = data['score']
-    if message.text.lower() == QUESTIONS[index]['answer']:
+    user = get_user(telegram_id=message.from_user.id)
+    q = questions[index]
+
+    is_correct = message.text.lower() == q["correct_answer"]
+    save_result(
+        user_id=user["id"],
+        question_id=q["id"],
+        is_correct=is_correct
+    )
+
+    if is_correct:
         score += 1
-        await message.answer('Правильный ответ!')
+        await message.answer("Крассавчик правильно, Бонжур! +1")
     else:
-        await message.answer(f'Ответ не верен, правильный ответ:{QUESTIONS[index]['answer'].lower()}')
-    
+        await message.answer(f"Неверно. Правильный ответ: {q["correct_answer"]}")
     
     index += 1
-
-    len_q = len(QUESTIONS)
-
-    if index == len_q:
-        await message.answer(f'Игра окончена! ваш Счет {score}/{index}\nХочещь сыграть еще?', reply_markup = inline_1)
-        await state.clear
+    if index == len(questions):
+        await message.answer(f"Конец! Счет: {score}/{len(questions)}")
+        await state.clear()
     else:
-        await state.update_data(index = index, score = score)
-        await message.answer(f'Вопрос {index + 1} : ' + QUESTIONS[index]['question'])
-
+        await state.update_data(index=index, score=score)
+        await message.answer(f"Вопрос {index + 1}: {questions[index]["question_text"]}")
 
 @router.message(Command('users'))
 async def cmd_users(message: Message):
