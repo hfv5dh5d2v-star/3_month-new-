@@ -68,7 +68,7 @@ async def cmd_management_support(callback: CallbackQuery, state: FSMContext):
     if not questions:
         await callback.message.answer("Вопросов нет!")
         return
-    await state.update_data(index = 0, score = 0)
+    await state.update_data(questions=questions, index = 0, score = 0)
     await state.set_state(Manage_Support.waiting_answer)
     await callback.message.answer(f'Вопрос 1: {questions[0]["question_text"]}')
 
@@ -91,7 +91,7 @@ async def user_answer(message: Message, state: FSMContext):
 
     if is_correct:
         score += 1
-        await message.answer("Крассавчик правильно, Бонжур! +1")
+        await message.answer("Правильно, +1")
     else:
         await message.answer(f"Неверно. Правильный ответ: {q["correct_answer"]}")
     
