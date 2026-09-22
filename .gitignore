@@ -6,4 +6,4 @@ venv/
 .vscode/
 .DS_Store
 .env
-quiz.db
+open.db
