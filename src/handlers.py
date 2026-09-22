@@ -7,6 +7,7 @@ from src.keyboards import reply, inline, inline_1
 from db.users import create_user, get_user, get_all_users, delete_user
 from db.results import save_result
 from db.qustions import get_all_questions
+from db.stats import get_history, get_top, get_hardest_question
 
 
 router = Router()
@@ -27,6 +28,45 @@ async def cmd_start(message: Message):
 @router.message(Command('help'))
 async def cmd_help(message: Message):
     await message.answer("This is a help message. Use /start to start the bot.", reply_markup = inline_1)
+
+@router.message(Command('top'))
+async def cmd_top(message: Message):
+    players = get_top(limit=8)
+    if not players:
+        await message.answer('Пока никто не играл!')
+        return
+    text = "Список игроков: \n\n"
+    for i, p in enumerate(players, 1):
+        text += f'{i}. {p["username"]} - {p["correct"]}/{p["total"]}\n'
+    await message.answer(text)
+
+
+@router.message(Command('hardest'))
+async def cmd_hardest(message: Message):
+    q = get_hardest_question()
+    if not q:
+        await message.answer("Пока нет данных")
+
+    await message.answer(
+        f'Самый сложный вопрос:\n'
+        f'{q["question_text"]}\n'
+        f'Правильных ответов: {q["success_rate"]}%'
+    )
+
+
+@router.message(Command('history'))
+async def cmd_history(message: Message):
+    history = get_history(telegram_id=message.from_user.id)
+    if not history:
+        await message.answer("Истории нет!")
+        return
+    text = "Последние ответы:\n\n"
+    for i, row in enumerate(history, 1):
+        mark = 'Верно' if row["is_correct"] else 'Неверно'
+        text += f'{i}. {mark} - {row["question_text"]}\n'
+    await message.answer(text)
+
+
 
 @router.message(Command('docs'))
 async def cmd_docs(message: Message):
